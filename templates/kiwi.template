@@ -1,0 +1,12 @@
+{
+	"name": "{{.Name}}",
+	"cells": [
+		{{with .Files}}{{range $index, $el := .}}{{if $index}},{{end}}{
+	        "x": {{$el.X}},
+	        "y": {{$el.Y}},
+	        "w": {{$el.Width}},
+	        "h": {{$el.Height}},
+	        "name": "{{$el.FileName}}"
+	    }{{end}}{{end}}
+    ]
+}
