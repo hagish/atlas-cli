@@ -6,8 +6,10 @@
 	        "y": {{$el.Y}},
 	        "w": {{$el.Width}},
 	        "h": {{$el.Height}},
-	        "name": "{{$el.FileName}}",
-	        "relativeName": "{{$el.FileNameRelative}}",
+	        "fileName": "{{$el.FileName}}",
+	        "relativeFileName": "{{$el.FileNameRelative}}",
+	        "fileNameOnly": "{{$el.FileNameOnly}}",
+	        "name": "{{$el.Name}}",
 	    }{{end}}{{end}}
     ]
 }

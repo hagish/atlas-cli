@@ -28,7 +28,7 @@ func fileExists(filename string) bool {
 }
 
 func main() {
-	inputDir := "C:\\Users\\hagis\\projects1\\Colors-of-the-Forest\\Assets\\Generated\\Resources\\Biomes"
+	inputDir := "C:\\Users\\hagis\\projects1\\Colors-of-the-Forest\\Assets\\Generated\\Resources"
 	outputDir := "C:\\Users\\hagis\\projects1\\Colors-of-the-Forest\\Assets\\Generated\\Resources\\Atlas\\Biomes_Campground"
 	relativeFileNameBase := "C:\\Users\\hagis\\projects1\\Colors-of-the-Forest\\Assets\\Generated\\Resources"
 
@@ -38,7 +38,7 @@ func main() {
 
 	files_cfill := listPngFiles(inputDir, "_cfill.png")
 
-	maxSize := 2048
+	maxSize := 2048 * 2
 
 	res, err := generateAtlas(files_cfill, outputDir, "atlas-cfill", maxSize, relativeFileNameBase)
 	if err != nil {
@@ -92,7 +92,7 @@ func generateAdditionalAtlas(res *GenerateResult, param *AdditionalAtlasParams) 
 		for _, file := range atlas.Files {
 			udfFile := strings.Replace(file.FileName, param.oldPattern, param.newPattern, -1)
 			if fileExists(udfFile) {
-				additionalAtlas.Files = append(additionalAtlas.Files, &File{
+				f := &File{
 					X:                file.X * param.scale,
 					Y:                file.Y * param.scale,
 					FileName:         udfFile,
@@ -100,7 +100,9 @@ func generateAdditionalAtlas(res *GenerateResult, param *AdditionalAtlasParams) 
 					Width:            file.Width * param.scale,
 					Height:           file.Height * param.scale,
 					Atlas:            additionalAtlas,
-				})
+				}
+				f.Complete()
+				additionalAtlas.Files = append(additionalAtlas.Files, f)
 			}
 		}
 

@@ -90,12 +90,14 @@ func generate(files []string, outputDir string, params *GenerateParams) (res *Ge
 			}
 			// Here we only add padding to the width and height once because otherwise
 			// we will end up with double gaps between images
-			res.Files[i] = &File{
+			f := &File{
 				FileName:         filename,
 				FileNameRelative: strings.Replace(filename, params.RelativeFileNameBase, "", 1),
 				Width:            size.X + border,
 				Height:           size.Y + border,
 			}
+			f.Complete()
+			res.Files[i] = f
 		} else {
 			fmt.Printf("Incorrect format for file: %s\n", filename)
 		}
