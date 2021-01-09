@@ -28,14 +28,19 @@ func fileExists(filename string) bool {
 }
 
 func main() {
-	root := "C:\\Users\\hagis\\projects1\\Colors-of-the-Forest\\Assets\\Generated\\Resources\\Biomes\\Campground"
+	inputDir := "C:\\Users\\hagis\\projects1\\Colors-of-the-Forest\\Assets\\Generated\\Resources\\Biomes"
 	outputDir := "C:\\Users\\hagis\\projects1\\Colors-of-the-Forest\\Assets\\Generated\\Resources\\Atlas\\Biomes_Campground"
+	relativeFileNameBase := "C:\\Users\\hagis\\projects1\\Colors-of-the-Forest\\Assets\\Generated\\Resources"
 
-	files_cfill := listPngFiles(root, "_cfill.png")
+	inputDir = filepath.ToSlash(inputDir)
+	outputDir = filepath.ToSlash(outputDir)
+	relativeFileNameBase = strings.TrimRight(filepath.ToSlash(relativeFileNameBase), "/") + "/"
+
+	files_cfill := listPngFiles(inputDir, "_cfill.png")
 
 	maxSize := 2048
 
-	res, err := generateAtlas(files_cfill, outputDir, "atlas-cfill", maxSize)
+	res, err := generateAtlas(files_cfill, outputDir, "atlas-cfill", maxSize, relativeFileNameBase)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -46,25 +51,27 @@ func main() {
 	param.oldPattern = "_cfill.png"
 	param.newPattern = "_cudf.png"
 	param.outputDir = outputDir
-	param.initialColor = color.RGBA{R:0,G:0,B:0,A:0}
+	param.initialColor = color.RGBA{R: 0, G: 0, B: 0, A: 0}
+	param.RelativeFileNameBase = relativeFileNameBase
 
 	generateAdditionalAtlas(res, param)
 
 	param.name = "atlas-cn"
 	param.newPattern = "_cn.png"
 	param.scale = 1
-	param.initialColor = color.RGBA{R:127,G:127,B:255,A:255}
+	param.initialColor = color.RGBA{R: 127, G: 127, B: 255, A: 255}
 
 	generateAdditionalAtlas(res, param)
 }
 
 type AdditionalAtlasParams struct {
-	name string
-	scale int
-	oldPattern string
-	newPattern string
-	outputDir string
-	initialColor color.RGBA
+	name                 string
+	scale                int
+	oldPattern           string
+	newPattern           string
+	outputDir            string
+	initialColor         color.RGBA
+	RelativeFileNameBase string
 }
 
 func generateAdditionalAtlas(res *GenerateResult, param *AdditionalAtlasParams) {
@@ -86,12 +93,13 @@ func generateAdditionalAtlas(res *GenerateResult, param *AdditionalAtlasParams) 
 			udfFile := strings.Replace(file.FileName, param.oldPattern, param.newPattern, -1)
 			if fileExists(udfFile) {
 				additionalAtlas.Files = append(additionalAtlas.Files, &File{
-					X:        file.X * param.scale,
-					Y:        file.Y * param.scale,
-					FileName: udfFile,
-					Width:    file.Width * param.scale,
-					Height:   file.Height * param.scale,
-					Atlas:    additionalAtlas,
+					X:                file.X * param.scale,
+					Y:                file.Y * param.scale,
+					FileName:         udfFile,
+					FileNameRelative: strings.Replace(udfFile, param.RelativeFileNameBase, "", 1),
+					Width:            file.Width * param.scale,
+					Height:           file.Height * param.scale,
+					Atlas:            additionalAtlas,
 				})
 			}
 		}
@@ -108,6 +116,7 @@ func listPngFiles(root string, pattern string) []string {
 	var files []string
 
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		path = filepath.ToSlash(path)
 		if strings.HasSuffix(path, ".png") && strings.Contains(path, pattern) {
 			files = append(files, path)
 		}
@@ -121,18 +130,19 @@ func listPngFiles(root string, pattern string) []string {
 	return files
 }
 
-func generateAtlas(files []string, outputDir string, name string, maxSize int) (*GenerateResult, error) {
+func generateAtlas(files []string, outputDir string, name string, maxSize int, relativeFileNameBase string) (*GenerateResult, error) {
 	params := GenerateParams{
-		Name:       name,        // The base name of the outputted files
-		Descriptor: DESC_KIWI,   // The format of the data file for the atlases
-		Packer:     PackGrowing, // The algorithm to use when packing
-		Sorter:     SortMaxSide, // The order to sort files by
-		MaxWidth:   maxSize,     // Maximum width/height of the atlas images
-		MaxHeight:  maxSize,
-		MaxAtlases: 0, // Indicates no maximum
-		Padding:    0, // The amount of blank space to add around each image
-		Gutter:     0, // The amount to bleed the outer pixels of each image
-		PowerOfTwo: true,
+		Name:                 name,        // The base name of the outputted files
+		Descriptor:           DESC_KIWI,   // The format of the data file for the atlases
+		Packer:               PackGrowing, // The algorithm to use when packing
+		Sorter:               SortMaxSide, // The order to sort files by
+		MaxWidth:             maxSize,     // Maximum width/height of the atlas images
+		MaxHeight:            maxSize,
+		MaxAtlases:           0, // Indicates no maximum
+		Padding:              0, // The amount of blank space to add around each image
+		Gutter:               0, // The amount to bleed the outer pixels of each image
+		PowerOfTwo:           true,
+		RelativeFileNameBase: relativeFileNameBase,
 	}
 
 	res, err := generate(files, outputDir, &params)

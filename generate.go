@@ -7,18 +7,20 @@ import (
 	"image/color"
 	"math"
 	"os"
+	"strings"
 )
 
 // Includes parameters that can be passed to the generate function
 type GenerateParams struct {
-	Name                string
-	Descriptor          DescriptorFormat
-	Packer              Packer
-	Sorter              Sorter
-	MaxWidth, MaxHeight int
-	MaxAtlases          int
-	Padding, Gutter     int
-	PowerOfTwo			bool
+	Name                 string
+	Descriptor           DescriptorFormat
+	Packer               Packer
+	Sorter               Sorter
+	MaxWidth, MaxHeight  int
+	MaxAtlases           int
+	Padding, Gutter      int
+	PowerOfTwo           bool
+	RelativeFileNameBase string
 }
 
 type FileTuple struct {
@@ -89,9 +91,10 @@ func generate(files []string, outputDir string, params *GenerateParams) (res *Ge
 			// Here we only add padding to the width and height once because otherwise
 			// we will end up with double gaps between images
 			res.Files[i] = &File{
-				FileName: filename,
-				Width:    size.X + border,
-				Height:   size.Y + border,
+				FileName:         filename,
+				FileNameRelative: strings.Replace(filename, params.RelativeFileNameBase, "", 1),
+				Width:            size.X + border,
+				Height:           size.Y + border,
 			}
 		} else {
 			fmt.Printf("Incorrect format for file: %s\n", filename)
