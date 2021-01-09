@@ -4,11 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"image/color"
 	"math"
 	"os"
 )
 
-// Includes parameters that can be passed to the Generate function
+// Includes parameters that can be passed to the generate function
 type GenerateParams struct {
 	Name                string
 	Descriptor          DescriptorFormat
@@ -17,13 +18,14 @@ type GenerateParams struct {
 	MaxWidth, MaxHeight int
 	MaxAtlases          int
 	Padding, Gutter     int
+	PowerOfTwo			bool
 }
 
 type FileTuple struct {
-	Files	[]string
+	Files []string
 }
 
-// Includes details of the result of a texture atlas Generate request
+// Includes details of the result of a texture atlas generate request
 type GenerateResult struct {
 	Files   []*File
 	Atlases []*Atlas
@@ -33,7 +35,7 @@ type GenerateResult struct {
 // and outputting to the given directory with the given parameters.
 // Will generate an error if any IO operations fail or if the GenerateParams
 // represent an invalid configuration
-func Generate(files []string, outputDir string, params *GenerateParams) (res *GenerateResult, err error) {
+func generate(files []string, outputDir string, params *GenerateParams) (res *GenerateResult, err error) {
 	// Apply any default parameters
 	if params == nil {
 		params = &GenerateParams{}
@@ -115,9 +117,13 @@ func Generate(files []string, outputDir string, params *GenerateParams) (res *Ge
 		}
 		res.Atlases = append(res.Atlases, atlas)
 		params.Packer(atlas, pending)
+		if params.PowerOfTwo {
+			atlas.Width = int(math.Pow(2, math.Ceil(math.Log(float64(atlas.Width))/math.Log(2))))
+			atlas.Height = int(math.Pow(2, math.Ceil(math.Log(float64(atlas.Height))/math.Log(2))))
+		}
 		pending = getRemainingFiles(pending)
 		fmt.Printf("Writing atlas named %s to %s\n", atlas.Name, outputDir)
-		err = atlas.Write(outputDir)
+		err = atlas.Write(outputDir, color.RGBA{R: 0, G: 0, B: 0, A: 0})
 		if err != nil {
 			return nil, err
 		}

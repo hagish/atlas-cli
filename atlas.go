@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"image"
+	"image/color"
 	"image/draw"
 	_ "image/gif"
 	_ "image/jpeg"
@@ -31,8 +32,8 @@ func (a *Atlas) AddFile(file *File, x, y int) {
 
 // Writes the atlas to the given output directory, this is shorthand
 // for calling both WriteImage and WriteDescriptor
-func (a *Atlas) Write(outputDir string) error {
-	if err := a.WriteImage(outputDir); err == nil {
+func (a *Atlas) Write(outputDir string, initialColor color.RGBA) error {
+	if err := a.WriteImage(outputDir, initialColor); err == nil {
 		return a.WriteDescriptor(outputDir)
 	} else {
 		return err
@@ -41,15 +42,15 @@ func (a *Atlas) Write(outputDir string) error {
 
 // Writes the image for this atlas to the given output directory
 // Returns an error if any IO operation fails
-func (a *Atlas) WriteImage(outputDir string) (err error) {
-	// Generate the image data
+func (a *Atlas) WriteImage(outputDir string, initialColor color.RGBA) (err error) {
+	// generate the image data
 	im := image.NewRGBA(image.Rect(0, 0, a.Width, a.Height))
 	// Set the background colour of the image
 	for i, n := 0, len(im.Pix); i < n; i += 4 {
-		im.Pix[i] = 0   // Red
-		im.Pix[i+1] = 0 // Green
-		im.Pix[i+2] = 0 // Blue
-		im.Pix[i+3] = 0 // Alpha
+		im.Pix[i] = initialColor.R   // Red
+		im.Pix[i+1] = initialColor.G // Green
+		im.Pix[i+2] = initialColor.B // Blue
+		im.Pix[i+3] = initialColor.A // Alpha
 	}
 
 	if a.Gutter == 0 {

@@ -44,12 +44,12 @@ func TestGenerate(t *testing.T) {
 		}},
 	}
 	for _, c := range cases {
-		got, err := Generate(c.in.Files, OUTPUT_DIR, c.in.Params)
+		got, err := generate(c.in.Files, OUTPUT_DIR, c.in.Params)
 		if err != nil {
-			t.Errorf("Generate threw an error: %s", err.Error())
+			t.Errorf("generate threw an error: %s", err.Error())
 		}
 		if len(got.Files) != c.want.NumFiles {
-			t.Errorf("Generate did not use all files: want %v files, got %v", c.want.NumFiles, got.Files)
+			t.Errorf("generate did not use all files: want %v files, got %v", c.want.NumFiles, got.Files)
 		}
 		if len(got.Atlases) != c.want.NumAtlases {
 			t.Errorf("Failed to generate enough atlases: want %v, got %v", c.want.NumAtlases, len(got.Atlases))
