@@ -30,20 +30,23 @@ func main() {
 	root := "C:\\Users\\hagis\\projects1\\Colors-of-the-Forest\\Assets\\Generated\\Resources\\Biomes\\Campground"
 	outputDir := "C:\\Users\\hagis\\projects1\\Colors-of-the-Forest\\Assets\\Generated\\Resources\\Atlas\\Biomes_Campground"
 
-	files_cfill := ListPngFiles(root, "_cfill.png")
+	files_cfill := listPngFiles(root, "_cfill.png")
 
 	maxSize := 2048
 
-	res, err := GenerateAtlas(files_cfill, outputDir, "atlas-cfill", maxSize)
+	res, err := generateAtlas(files_cfill, outputDir, "atlas-cfill", maxSize)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	for i, atlas := range res.Atlases {
-		scale := 2
+	generateAdditionalAtlas(res, "atlas-cudf", 2,"_cfill.png", "_cudf.png", outputDir)
+	generateAdditionalAtlas(res, "atlas-cn", 1,"_cfill.png", "_cn.png", outputDir)
+}
 
+func generateAdditionalAtlas(res *GenerateResult, name string, scale int, oldPattern string, newPattern string, outputDir string) {
+	for i, atlas := range res.Atlases {
 		additionalAtlas := &Atlas{
-			Name:       fmt.Sprintf("%s-%d", "atlas-cdf", (i + 1)),
+			Name:       fmt.Sprintf("%s-%d", name, (i + 1)),
 			Width:      atlas.Width * scale,
 			Height:     atlas.Height * scale,
 			MaxWidth:   atlas.MaxWidth * scale,
@@ -56,7 +59,7 @@ func main() {
 
 		// remap additional files
 		for _, file := range atlas.Files {
-			udfFile := strings.Replace(file.FileName, "_cfill.png", "_cudf.png", -1)
+			udfFile := strings.Replace(file.FileName, oldPattern, newPattern, -1)
 			if fileExists(udfFile) {
 				additionalAtlas.Files = append(additionalAtlas.Files, &File{
 					X:        file.X * scale,
@@ -70,14 +73,14 @@ func main() {
 		}
 
 		fmt.Printf("Writing atlas named %s to %s\n", additionalAtlas.Name, outputDir)
-		err = additionalAtlas.Write(outputDir)
+		err := additionalAtlas.Write(outputDir)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
 }
 
-func ListPngFiles(root string, pattern string) []string {
+func listPngFiles(root string, pattern string) []string {
 	var files []string
 
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
@@ -94,7 +97,7 @@ func ListPngFiles(root string, pattern string) []string {
 	return files
 }
 
-func GenerateAtlas(files []string, outputDir string, name string, maxSize int) (*GenerateResult, error) {
+func generateAtlas(files []string, outputDir string, name string, maxSize int) (*GenerateResult, error) {
 	params := GenerateParams{
 		Name:       name,        // The base name of the outputted files
 		Descriptor: DESC_KIWI,   // The format of the data file for the atlases
