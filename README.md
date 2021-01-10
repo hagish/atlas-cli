@@ -1,42 +1,77 @@
 Go Atlas
 ========
 
-Texture packer written in Go.
+Texture packer command line tool written in Go.
+This is mostly a command line tool around https://github.com/ikkeps/atlas with the option to add additional atlases with the same layout.
+Not all the original features are exposed in the config. Beware! The code may be quick and dirty.
 
 ### Features
 
 * Set maximum width/height of atlases for platform constraints
 * Generate as many atlases as you need with a single command
-* Add gutter to the images to prevent join lines between sprites
-* Generate descriptor files in a range of formats (Currently only Kiwi.js supported)
-* Specify assets that must be grouped together to ensure maximum runtime performance (TODO)
+* Generate descriptor files in a range of formats
+* Generate a set of additional texture atlases with the same layout for additional images (e.g. normal maps)
+* Atlases are power-of-two
+* Only supports `.png` files (and probably not with `.PNG`)
 
 ### Example Usage
 
-Basic example
+Config file example
 ```
-inFiles := []string{
-	"./assets/sprite1.png",
-	"./assets/sprite2.png"
+{
+  "templateFile": "template.txt",
+  "templateExt": "json",
+  "inputDir": "Sprites",
+  "outputDir": "Atlas",
+  "relativeFileNameBase": "Sprites",
+  "maxSize": 4096,
+  "atlasName": "atlas-main",
+  "pattern": "_main.png",
+  "initialColor": {"r": 0, "g": 0, "b": 0, "a": 0},
+  "additional": [
+    {
+      "atlasName": "atlas-normal",
+      "scale": 1,
+      "pattern": "_normal.png",
+      "initialColor": { "r": 127, "g": 127, "b": 255, "a": 255}
+    }
+  ]
 }
-outputDir := "./assets/spritesheets"
-res, err := atlas.Generate(inFiles, outputDir, nil)
+```
+Run the command with `--config yourconfigfile.json`.
+It will search for `.png` files in the `inputDir` that have `pattern` in the filename.
+The additional atlases take the those input filenames and replace the main `pattern` with `pattern` from the additional.  
+
+All paths within the config file are relative to the directory of the config file.
+
+Template file example
+```
+{
+	"name": "{{.Name}}",
+	"cells": [
+		{{with .Files}}{{range $index, $el := .}}{{if $index}},{{end}}{
+	        "x": {{$el.X}},
+	        "y": {{$el.Y}},
+	        "w": {{$el.Width}},
+	        "h": {{$el.Height}},
+	        "fileName": "{{$el.FileName}}",
+	        "relativeFileName": "{{$el.FileNameRelative}}",
+	        "fileNameOnly": "{{$el.FileNameOnly}}",
+	        "name": "{{$el.Name}}",
+	    }{{end}}{{end}}
+    ]
+}
 ```
 
-You can pass params to the Generate function
+Example file structure
 ```
-params := atlas.GenerateParams {
-	Name   	   : "atlas" // The base name of the outputted files
-	Descriptor : atlas.DESC_KIWI // The format of the data file for the atlases
-	Packer     : atlas.PackGrowing // The algorithm to use when packing
-	Sorter	   : atlas.SortMaxSide // The order to sort files by
-	MaxWidth   : 2048 // Maximum width/height of the atlas images
-	MaxHeight  : 2048 
-	MaxAtlases : 0 // Indicates no maximum
-	Padding    : 0 // The amount of blank space to add around each image
-	Gutter     : 0 // The amount to bleed the outer pixels of each image
-}
-res, err := atlas.Generate(inFiles, outputDir, &params)
+atlas.json
+template.txt
+Sprites/s1_main.png
+Sprites/s1_normal.png
+Sprites/s2_main.png
+Sprites/s2_normal.png
+Atlas/
 ```
 
 ### License

@@ -33,7 +33,7 @@ func fileExists(filename string) bool {
 func main() {
 	/*
 		config := Config{
-			TemplateFile:         "C:\\Users\\hagis\\projects1\\atlas-cli\\files\\kiwi.template",
+			TemplateFile:         "C:\\Users\\hagis\\projects1\\atlas-cli\\files\\template.txt",
 			InputDir:             "C:\\Users\\hagis\\projects1\\Colors-of-the-Forest\\Assets\\Generated\\Resources",
 			OutputDir:            "C:\\Users\\hagis\\projects1\\Colors-of-the-Forest\\Assets\\Generated\\Resources",
 			RelativeFileNameBase: "C:\\Users\\hagis\\projects1\\Colors-of-the-Forest\\Assets\\Generated\\Resources",
