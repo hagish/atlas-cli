@@ -30,68 +30,42 @@ func fileExists(filename string) bool {
 	return !info.IsDir()
 }
 
-type Config struct {
-	TemplateFile         string
-	TemplateExt          string
-	InputDir             string
-	OutputDir            string
-	RelativeFileNameBase string
-	MaxSize              int
-
-	Pattern      string
-	AtlasName    string
-	InitialColor ConfigColor
-
-	Additional []ConfigAtlas
-}
-
-type ConfigColor struct {
-	R, G, B, A uint8
-}
-
-type ConfigAtlas struct {
-	Pattern      string
-	Scale        int
-	AtlasName    string
-	InitialColor ConfigColor
-}
-
 func main() {
 	/*
-	config := Config{
-		TemplateFile:         "C:\\Users\\hagis\\projects1\\atlas-cli\\files\\kiwi.template",
-		InputDir:             "C:\\Users\\hagis\\projects1\\Colors-of-the-Forest\\Assets\\Generated\\Resources",
-		OutputDir:            "C:\\Users\\hagis\\projects1\\Colors-of-the-Forest\\Assets\\Generated\\Resources",
-		RelativeFileNameBase: "C:\\Users\\hagis\\projects1\\Colors-of-the-Forest\\Assets\\Generated\\Resources",
-		MaxSize:              1024 * 4,
-		AtlasName:            "atlas-cfill",
-		Pattern:              "_cfill.png",
-		InitialColor: ConfigColor{
-			R: 0, G: 0, B: 0, A: 0,
-		},
-		Additional: []ConfigAtlas{
-			{
-				AtlasName: "atlas-cudf",
-				Scale:     2,
-				Pattern:   "_cudf.png",
-				InitialColor: ConfigColor{
-					R: 0, G: 0, B: 0, A: 0,
+		config := Config{
+			TemplateFile:         "C:\\Users\\hagis\\projects1\\atlas-cli\\files\\kiwi.template",
+			InputDir:             "C:\\Users\\hagis\\projects1\\Colors-of-the-Forest\\Assets\\Generated\\Resources",
+			OutputDir:            "C:\\Users\\hagis\\projects1\\Colors-of-the-Forest\\Assets\\Generated\\Resources",
+			RelativeFileNameBase: "C:\\Users\\hagis\\projects1\\Colors-of-the-Forest\\Assets\\Generated\\Resources",
+			MaxSize:              1024 * 4,
+			AtlasName:            "atlas-cfill",
+			Pattern:              "_cfill.png",
+			InitialColor: ConfigColor{
+				R: 0, G: 0, B: 0, A: 0,
+			},
+			Additional: []ConfigAtlas{
+				{
+					AtlasName: "atlas-cudf",
+					Scale:     2,
+					Pattern:   "_cudf.png",
+					InitialColor: ConfigColor{
+						R: 0, G: 0, B: 0, A: 0,
+					},
+				},
+				{
+					AtlasName: "atlas-cn",
+					Scale:     1,
+					Pattern:   "_cn.png",
+					InitialColor: ConfigColor{
+						R: 127, G: 127, B: 255, A: 255,
+					},
 				},
 			},
-			{
-				AtlasName: "atlas-cn",
-				Scale:     1,
-				Pattern:   "_cn.png",
-				InitialColor: ConfigColor{
-					R: 127, G: 127, B: 255, A: 255,
-				},
-			},
-		},
-	}
+		}
 	*/
 
 	var configFile string
-	flag.StringVar(&configFile, "config", "atlas.json", "json config file that specifies the atlas params and input files")
+	flag.StringVar(&configFile, "config", "atlas.json", "Json config file that specifies the atlas params and input files. All paths within the json are relative to the json files directory.")
 	flag.Parse()
 
 	configDir := filepath.Dir(configFile)
@@ -114,6 +88,7 @@ func main() {
 
 	log.Printf("Using config: %v", configFile)
 	log.Printf("Working directory: %v", configDir)
+	log.Printf("Using template file: %v", config.TemplateFile)
 
 	inputDir := filepath.ToSlash(config.InputDir)
 	outputDir := filepath.ToSlash(config.OutputDir)
@@ -126,6 +101,8 @@ func main() {
 	res, err := generateAtlas(files_main, outputDir, config.AtlasName, maxSize, relativeFileNameBase, config.TemplateFile, config.TemplateExt)
 	if err != nil {
 		log.Fatal(err)
+		os.Exit(1)
+		return
 	}
 
 	for _, addConfig := range config.Additional {
@@ -197,6 +174,8 @@ func generateAdditionalAtlas(res *GenerateResult, param *AdditionalAtlasParams) 
 		err := additionalAtlas.Write(param.outputDir, param.initialColor)
 		if err != nil {
 			log.Fatal(err)
+			os.Exit(1)
+			return
 		}
 	}
 }
@@ -214,6 +193,8 @@ func listPngFiles(root string, pattern string) []string {
 
 	if err != nil {
 		log.Fatal(err)
+		os.Exit(1)
+		return nil
 	}
 
 	return files
