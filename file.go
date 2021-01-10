@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// Represents a File to be outputted
+// Represents A File to be outputted
 type File struct {
 	Atlas            *Atlas
 	FileName         string
@@ -18,7 +18,7 @@ type File struct {
 	Height           int
 }
 
-func (f *File) Complete () {
+func (f *File) Complete() {
 	f.FileNameOnly = path.Base(f.FileName)
 	f.Name = strings.TrimSuffix(f.FileNameOnly, ".png")
 }

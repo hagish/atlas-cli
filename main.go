@@ -1,8 +1,11 @@
 package main
 
 import (
+	"encoding/json"
+	"flag"
 	"fmt"
 	"image/color"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -27,41 +30,122 @@ func fileExists(filename string) bool {
 	return !info.IsDir()
 }
 
+type Config struct {
+	TemplateFile         string
+	TemplateExt          string
+	InputDir             string
+	OutputDir            string
+	RelativeFileNameBase string
+	MaxSize              int
+
+	Pattern      string
+	AtlasName    string
+	InitialColor ConfigColor
+
+	Additional []ConfigAtlas
+}
+
+type ConfigColor struct {
+	R, G, B, A uint8
+}
+
+type ConfigAtlas struct {
+	Pattern      string
+	Scale        int
+	AtlasName    string
+	InitialColor ConfigColor
+}
+
 func main() {
-	inputDir := "C:\\Users\\hagis\\projects1\\Colors-of-the-Forest\\Assets\\Generated\\Resources"
-	outputDir := "C:\\Users\\hagis\\projects1\\Colors-of-the-Forest\\Assets\\Generated\\Resources\\Atlas\\Biomes_Campground"
-	relativeFileNameBase := "C:\\Users\\hagis\\projects1\\Colors-of-the-Forest\\Assets\\Generated\\Resources"
+	/*
+	config := Config{
+		TemplateFile:         "C:\\Users\\hagis\\projects1\\atlas-cli\\files\\kiwi.template",
+		InputDir:             "C:\\Users\\hagis\\projects1\\Colors-of-the-Forest\\Assets\\Generated\\Resources",
+		OutputDir:            "C:\\Users\\hagis\\projects1\\Colors-of-the-Forest\\Assets\\Generated\\Resources",
+		RelativeFileNameBase: "C:\\Users\\hagis\\projects1\\Colors-of-the-Forest\\Assets\\Generated\\Resources",
+		MaxSize:              1024 * 4,
+		AtlasName:            "atlas-cfill",
+		Pattern:              "_cfill.png",
+		InitialColor: ConfigColor{
+			R: 0, G: 0, B: 0, A: 0,
+		},
+		Additional: []ConfigAtlas{
+			{
+				AtlasName: "atlas-cudf",
+				Scale:     2,
+				Pattern:   "_cudf.png",
+				InitialColor: ConfigColor{
+					R: 0, G: 0, B: 0, A: 0,
+				},
+			},
+			{
+				AtlasName: "atlas-cn",
+				Scale:     1,
+				Pattern:   "_cn.png",
+				InitialColor: ConfigColor{
+					R: 127, G: 127, B: 255, A: 255,
+				},
+			},
+		},
+	}
+	*/
 
-	inputDir = filepath.ToSlash(inputDir)
-	outputDir = filepath.ToSlash(outputDir)
-	relativeFileNameBase = strings.TrimRight(filepath.ToSlash(relativeFileNameBase), "/") + "/"
+	var configFile string
+	flag.StringVar(&configFile, "config", "atlas.json", "json config file that specifies the atlas params and input files")
+	flag.Parse()
 
-	files_cfill := listPngFiles(inputDir, "_cfill.png")
+	configDir := filepath.Dir(configFile)
+	configJson, err := ioutil.ReadFile(configFile)
+	if err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+		return
+	}
 
-	maxSize := 2048 * 2
+	var config Config
+	err = json.Unmarshal(configJson, &config)
+	if err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+		return
+	}
 
-	res, err := generateAtlas(files_cfill, outputDir, "atlas-cfill", maxSize, relativeFileNameBase)
+	os.Chdir(configDir)
+
+	log.Printf("Using config: %v", configFile)
+	log.Printf("Working directory: %v", configDir)
+
+	inputDir := filepath.ToSlash(config.InputDir)
+	outputDir := filepath.ToSlash(config.OutputDir)
+	relativeFileNameBase := strings.TrimRight(filepath.ToSlash(config.RelativeFileNameBase), "/") + "/"
+
+	files_main := listPngFiles(inputDir, config.Pattern)
+
+	maxSize := config.MaxSize
+
+	res, err := generateAtlas(files_main, outputDir, config.AtlasName, maxSize, relativeFileNameBase, config.TemplateFile, config.TemplateExt)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	param := new(AdditionalAtlasParams)
-	param.name = "atlas-cudf"
-	param.scale = 2
-	param.oldPattern = "_cfill.png"
-	param.newPattern = "_cudf.png"
-	param.outputDir = outputDir
-	param.initialColor = color.RGBA{R: 0, G: 0, B: 0, A: 0}
-	param.RelativeFileNameBase = relativeFileNameBase
-
-	generateAdditionalAtlas(res, param)
-
-	param.name = "atlas-cn"
-	param.newPattern = "_cn.png"
-	param.scale = 1
-	param.initialColor = color.RGBA{R: 127, G: 127, B: 255, A: 255}
-
-	generateAdditionalAtlas(res, param)
+	for _, addConfig := range config.Additional {
+		param := new(AdditionalAtlasParams)
+		param.name = addConfig.AtlasName
+		param.scale = addConfig.Scale
+		param.oldPattern = config.Pattern
+		param.newPattern = addConfig.Pattern
+		param.outputDir = outputDir
+		param.initialColor = color.RGBA{
+			R: addConfig.InitialColor.R,
+			G: addConfig.InitialColor.G,
+			B: addConfig.InitialColor.B,
+			A: addConfig.InitialColor.A,
+		}
+		param.RelativeFileNameBase = relativeFileNameBase
+		param.TemplateFile = config.TemplateFile
+		param.TemplateExt = config.TemplateExt
+		generateAdditionalAtlas(res, param)
+	}
 }
 
 type AdditionalAtlasParams struct {
@@ -72,23 +156,26 @@ type AdditionalAtlasParams struct {
 	outputDir            string
 	initialColor         color.RGBA
 	RelativeFileNameBase string
+	TemplateFile         string
+	TemplateExt          string
 }
 
 func generateAdditionalAtlas(res *GenerateResult, param *AdditionalAtlasParams) {
 	for i, atlas := range res.Atlases {
 		additionalAtlas := &Atlas{
-			Name:       fmt.Sprintf("%s-%d", param.name, (i + 1)),
-			Width:      atlas.Width * param.scale,
-			Height:     atlas.Height * param.scale,
-			MaxWidth:   atlas.MaxWidth * param.scale,
-			MaxHeight:  atlas.MaxHeight * param.scale,
-			Descriptor: DESC_KIWI,
-			Padding:    0,
-			Gutter:     0,
-			Files:      make([]*File, 0),
+			Name:         fmt.Sprintf("%s-%d", param.name, (i + 1)),
+			Width:        atlas.Width * param.scale,
+			Height:       atlas.Height * param.scale,
+			MaxWidth:     atlas.MaxWidth * param.scale,
+			MaxHeight:    atlas.MaxHeight * param.scale,
+			TemplateFile: param.TemplateFile,
+			TemplateExt:  param.TemplateExt,
+			Padding:      0,
+			Gutter:       0,
+			Files:        make([]*File, 0),
 		}
 
-		// remap additional files
+		// remap Additional files
 		for _, file := range atlas.Files {
 			udfFile := strings.Replace(file.FileName, param.oldPattern, param.newPattern, -1)
 			if fileExists(udfFile) {
@@ -132,10 +219,11 @@ func listPngFiles(root string, pattern string) []string {
 	return files
 }
 
-func generateAtlas(files []string, outputDir string, name string, maxSize int, relativeFileNameBase string) (*GenerateResult, error) {
+func generateAtlas(files []string, outputDir string, name string, maxSize int, relativeFileNameBase string, templateFile string, templateExt string) (*GenerateResult, error) {
 	params := GenerateParams{
-		Name:                 name,        // The base name of the outputted files
-		Descriptor:           DESC_KIWI,   // The format of the data file for the atlases
+		Name:                 name, // The base name of the outputted files
+		TemplateFile:         templateFile,
+		TemplateExt:          templateExt,
 		Packer:               PackGrowing, // The algorithm to use when packing
 		Sorter:               SortMaxSide, // The order to sort files by
 		MaxWidth:             maxSize,     // Maximum width/height of the atlas images

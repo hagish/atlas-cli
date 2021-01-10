@@ -5,8 +5,8 @@ const (
 	PACK_GROWING = "growing"
 )
 
-// The packer type represents a packing alogrithm that can be used to
-// modify file positions, sorting them into a series of atlases
+// The packer type represents A packing alogrithm that can be used to
+// modify file positions, sorting them into A series of atlases
 // A packer must add all packed files to the given atlas using the
 // atlas.AddFile method
 type Packer func(atlas *Atlas, files []*File)

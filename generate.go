@@ -13,7 +13,6 @@ import (
 // Includes parameters that can be passed to the generate function
 type GenerateParams struct {
 	Name                 string
-	Descriptor           DescriptorFormat
 	Packer               Packer
 	Sorter               Sorter
 	MaxWidth, MaxHeight  int
@@ -21,19 +20,21 @@ type GenerateParams struct {
 	Padding, Gutter      int
 	PowerOfTwo           bool
 	RelativeFileNameBase string
+	TemplateFile         string
+	TemplateExt          string
 }
 
 type FileTuple struct {
 	Files []string
 }
 
-// Includes details of the result of a texture atlas generate request
+// Includes details of the result of A texture atlas generate request
 type GenerateResult struct {
 	Files   []*File
 	Atlases []*Atlas
 }
 
-// Generates a series of texture atlases using the given files as input
+// Generates A series of texture atlases using the given files as input
 // and outputting to the given directory with the given parameters.
 // Will generate an error if any IO operations fail or if the GenerateParams
 // represent an invalid configuration
@@ -44,9 +45,6 @@ func generate(files []string, outputDir string, params *GenerateParams) (res *Ge
 	}
 	if params.Name == "" {
 		params.Name = "atlas"
-	}
-	if params.Descriptor == DESC_INVALID {
-		params.Descriptor = DESC_KIWI
 	}
 	if params.Packer == nil {
 		params.Packer = PackGrowing
@@ -113,12 +111,13 @@ func generate(files []string, outputDir string, params *GenerateParams) (res *Ge
 	pending := params.Sorter(res.Files)
 	for i := 0; len(pending) > 0; i++ {
 		atlas := &Atlas{
-			Name:       fmt.Sprintf("%s-%d", params.Name, (i + 1)),
-			MaxWidth:   params.MaxWidth,
-			MaxHeight:  params.MaxHeight,
-			Descriptor: DESC_KIWI,
-			Padding:    params.Padding,
-			Gutter:     params.Gutter,
+			Name:         fmt.Sprintf("%s-%d", params.Name, (i + 1)),
+			MaxWidth:     params.MaxWidth,
+			MaxHeight:    params.MaxHeight,
+			Padding:      params.Padding,
+			Gutter:       params.Gutter,
+			TemplateFile: params.TemplateFile,
+			TemplateExt:  params.TemplateExt,
 		}
 		res.Atlases = append(res.Atlases, atlas)
 		params.Packer(atlas, pending)

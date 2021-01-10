@@ -12,17 +12,18 @@ import (
 	"path"
 )
 
-// Represents a single atlas to be outputted
+// Represents A single atlas to be outputted
 type Atlas struct {
 	Name                string
 	Files               []*File
 	Width, Height       int
 	MaxWidth, MaxHeight int
 	Padding, Gutter     int
-	Descriptor          DescriptorFormat
+	TemplateFile        string
+	TemplateExt         string
 }
 
-// Adds a file into the atlas at the given position
+// Adds A file into the atlas at the given position
 // Used by packers to add packed files to the atlas
 func (a *Atlas) AddFile(file *File, x, y int) {
 	file.Atlas = a
@@ -60,7 +61,7 @@ func (a *Atlas) WriteImage(outputDir string, initialColor color.RGBA) (err error
 		})
 	} else {
 		err = compositeImage(a.Files, func(file *File, cim image.Image) {
-			// Create a temp image with padding for the gutter
+			// Create A temp image with padding for the gutter
 			cimSize := cim.Bounds().Size()
 			tempRect := image.Rect(0, 0, cimSize.X+a.Gutter*2, cimSize.Y+a.Gutter*2)
 			temp := image.NewRGBA(tempRect)
@@ -176,11 +177,11 @@ func bleed(im draw.Image, amount int) {
 // Writes the descriptor file for this atlas to the given output directory
 // Returns an error if any IO operation fails
 func (a *Atlas) WriteDescriptor(outputDir string) error {
-	t, err := GetTemplateForFormat(a.Descriptor)
+	t, err := GetTemplateForFormat(a.TemplateFile)
 	if err != nil {
 		return err
 	}
-	ext := GetFileExtForFormat(a.Descriptor)
+	ext := a.TemplateExt
 	out, err := os.Create(path.Join(outputDir, fmt.Sprintf("%s.%s", a.Name, ext)))
 	if err != nil {
 		return err

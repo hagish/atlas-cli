@@ -4,7 +4,7 @@ import "sort"
 
 // A function that will compare two files and return the difference
 // A negative number will be returned if f2 is should be sorted before
-// file 1, a zero represents equality and a positive number is returned
+// file 1, A zero represents equality and A positive number is returned
 // if file 1 should appear before file 2
 type sortFunc func(f1, f2 *File) int
 
@@ -69,9 +69,9 @@ func maxSide(f1, f2 *File) int {
 	return f1max - f2max
 }
 
-// Compares two files using a number of sorting methods. If the first sorting
+// Compares two files using A number of sorting methods. If the first sorting
 // method returns 0 (the two files are equal) then the next sorting method
-// will be used. Continues until a sorting method returns a non-zero value.
+// will be used. Continues until A sorting method returns A non-zero value.
 func multiSort(f1, f2 *File, methods ...sortFunc) int {
 	for _, method := range methods {
 		if res := method(f1, f2); res != 0 {

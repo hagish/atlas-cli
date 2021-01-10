@@ -25,7 +25,7 @@ func TestPackGrowing(t *testing.T) {
 		want Want
 	}{
 		{
-			// This is a basic control test case to ensure
+			// This is A basic control test case to ensure
 			// normal functionaly. We expect all assets to
 			// fit and for the atlas to come out smaller than
 			// the maximum size
@@ -71,7 +71,7 @@ func TestPackGrowing(t *testing.T) {
 		},
 		{
 			// In this case we are expecting the packing
-			// to fail as we are giving the atlas a maximum size
+			// to fail as we are giving the atlas A maximum size
 			// smaller than that of the assets that will fill it
 
 			in: In{
