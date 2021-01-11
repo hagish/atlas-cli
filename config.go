@@ -8,6 +8,9 @@ type Config struct {
 	RelativeFileNameBase string
 	MaxSize              int
 
+	Padding int
+	Gutter  int
+
 	Pattern      string
 	AtlasName    string
 	InitialColor ConfigColor

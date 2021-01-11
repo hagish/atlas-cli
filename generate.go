@@ -127,6 +127,7 @@ func generate(files []string, outputDir string, params *GenerateParams) (res *Ge
 		}
 		pending = getRemainingFiles(pending)
 		fmt.Printf("Writing atlas named %s to %s\n", atlas.Name, outputDir)
+		os.MkdirAll(outputDir, os.ModePerm)
 		err = atlas.Write(outputDir, color.RGBA{R: 0, G: 0, B: 0, A: 0})
 		if err != nil {
 			return nil, err

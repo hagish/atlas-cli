@@ -12,24 +12,6 @@ import (
 	"strings"
 )
 
-func contains(s []string, str string) bool {
-	for _, v := range s {
-		if v == str {
-			return true
-		}
-	}
-
-	return false
-}
-
-func fileExists(filename string) bool {
-	info, err := os.Stat(filename)
-	if os.IsNotExist(err) {
-		return false
-	}
-	return !info.IsDir()
-}
-
 func main() {
 	/*
 		config := Config{
@@ -96,9 +78,20 @@ func main() {
 
 	files_main := listPngFiles(inputDir, config.Pattern)
 
-	maxSize := config.MaxSize
+	generateParams := GenerateParams{
+		Name:                 config.AtlasName,
+		RelativeFileNameBase: relativeFileNameBase,
+		TemplateFile:         config.TemplateFile,
+		TemplateExt:          config.TemplateExt,
+		Padding:              config.Padding,
+		Gutter:               config.Gutter,
+		PowerOfTwo:           true,
+		MaxWidth:             config.MaxSize,
+		MaxHeight:            config.MaxSize,
+		MaxAtlases:           0,
+	}
 
-	res, err := generateAtlas(files_main, outputDir, config.AtlasName, maxSize, relativeFileNameBase, config.TemplateFile, config.TemplateExt)
+	res, err := generateMainAtlas(files_main, outputDir, &generateParams)
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
@@ -107,7 +100,6 @@ func main() {
 
 	for _, addConfig := range config.Additional {
 		param := new(AdditionalAtlasParams)
-		param.name = addConfig.AtlasName
 		param.scale = addConfig.Scale
 		param.oldPattern = config.Pattern
 		param.newPattern = addConfig.Pattern
@@ -118,51 +110,52 @@ func main() {
 			B: addConfig.InitialColor.B,
 			A: addConfig.InitialColor.A,
 		}
-		param.RelativeFileNameBase = relativeFileNameBase
-		param.TemplateFile = config.TemplateFile
-		param.TemplateExt = config.TemplateExt
+		generateParams.Name = addConfig.AtlasName
+		param.generateParams = &generateParams
 		generateAdditionalAtlas(res, param)
 	}
 }
 
 type AdditionalAtlasParams struct {
-	name                 string
-	scale                int
-	oldPattern           string
-	newPattern           string
-	outputDir            string
-	initialColor         color.RGBA
-	RelativeFileNameBase string
-	TemplateFile         string
-	TemplateExt          string
+	scale          int
+	oldPattern     string
+	newPattern     string
+	outputDir      string
+	initialColor   color.RGBA
+	generateParams *GenerateParams
 }
 
-func generateAdditionalAtlas(res *GenerateResult, param *AdditionalAtlasParams) {
+func generateMainAtlas(files []string, outputDir string, params *GenerateParams) (*GenerateResult, error) {
+	res, err := generate(files, outputDir, params)
+	return res, err
+}
+
+func generateAdditionalAtlas(res *GenerateResult, params *AdditionalAtlasParams) {
 	for i, atlas := range res.Atlases {
 		additionalAtlas := &Atlas{
-			Name:         fmt.Sprintf("%s-%d", param.name, (i + 1)),
-			Width:        atlas.Width * param.scale,
-			Height:       atlas.Height * param.scale,
-			MaxWidth:     atlas.MaxWidth * param.scale,
-			MaxHeight:    atlas.MaxHeight * param.scale,
-			TemplateFile: param.TemplateFile,
-			TemplateExt:  param.TemplateExt,
-			Padding:      0,
-			Gutter:       0,
+			Name:         fmt.Sprintf("%s-%d", params.generateParams.Name, (i + 1)),
+			Width:        atlas.Width * params.scale,
+			Height:       atlas.Height * params.scale,
+			MaxWidth:     atlas.MaxWidth * params.scale,
+			MaxHeight:    atlas.MaxHeight * params.scale,
+			TemplateFile: params.generateParams.TemplateFile,
+			TemplateExt:  params.generateParams.TemplateExt,
+			Padding:      params.generateParams.Padding,
+			Gutter:       params.generateParams.Gutter,
 			Files:        make([]*File, 0),
 		}
 
 		// remap Additional files
 		for _, file := range atlas.Files {
-			udfFile := strings.Replace(file.FileName, param.oldPattern, param.newPattern, -1)
+			udfFile := strings.Replace(file.FileName, params.oldPattern, params.newPattern, -1)
 			if fileExists(udfFile) {
 				f := &File{
-					X:                file.X * param.scale,
-					Y:                file.Y * param.scale,
+					X:                file.X * params.scale,
+					Y:                file.Y * params.scale,
 					FileName:         udfFile,
-					FileNameRelative: strings.Replace(udfFile, param.RelativeFileNameBase, "", 1),
-					Width:            file.Width * param.scale,
-					Height:           file.Height * param.scale,
+					FileNameRelative: strings.Replace(udfFile, params.generateParams.RelativeFileNameBase, "", 1),
+					Width:            file.Width * params.scale,
+					Height:           file.Height * params.scale,
 					Atlas:            additionalAtlas,
 				}
 				f.Complete()
@@ -170,52 +163,12 @@ func generateAdditionalAtlas(res *GenerateResult, param *AdditionalAtlasParams) 
 			}
 		}
 
-		fmt.Printf("Writing atlas named %s to %s\n", additionalAtlas.Name, param.outputDir)
-		err := additionalAtlas.Write(param.outputDir, param.initialColor)
+		fmt.Printf("Writing atlas named %s to %s\n", additionalAtlas.Name, params.outputDir)
+		err := additionalAtlas.Write(params.outputDir, params.initialColor)
 		if err != nil {
 			log.Fatal(err)
 			os.Exit(1)
 			return
 		}
 	}
-}
-
-func listPngFiles(root string, pattern string) []string {
-	var files []string
-
-	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		path = filepath.ToSlash(path)
-		if strings.HasSuffix(path, ".png") && strings.Contains(path, pattern) {
-			files = append(files, path)
-		}
-		return nil
-	})
-
-	if err != nil {
-		log.Fatal(err)
-		os.Exit(1)
-		return nil
-	}
-
-	return files
-}
-
-func generateAtlas(files []string, outputDir string, name string, maxSize int, relativeFileNameBase string, templateFile string, templateExt string) (*GenerateResult, error) {
-	params := GenerateParams{
-		Name:                 name, // The base name of the outputted files
-		TemplateFile:         templateFile,
-		TemplateExt:          templateExt,
-		Packer:               PackGrowing, // The algorithm to use when packing
-		Sorter:               SortMaxSide, // The order to sort files by
-		MaxWidth:             maxSize,     // Maximum width/height of the atlas images
-		MaxHeight:            maxSize,
-		MaxAtlases:           0, // Indicates no maximum
-		Padding:              0, // The amount of blank space to add around each image
-		Gutter:               0, // The amount to bleed the outer pixels of each image
-		PowerOfTwo:           true,
-		RelativeFileNameBase: relativeFileNameBase,
-	}
-
-	res, err := generate(files, outputDir, &params)
-	return res, err
 }
